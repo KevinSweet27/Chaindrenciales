@@ -1,0 +1,9 @@
+name: Ejecutar script
+on: [workflow_dispatch]
+jobs:
+  run-code:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Ejecutar código
+        run: python tu_script.py # o el comando del lenguaje que uses
