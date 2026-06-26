@@ -1,0 +1,1109 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>COCOX — Plataforma de Reclutamiento Contextual</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+:root {
+  --green:#00C896; --green-light:#e6faf4; --green-dark:#00a87e;
+  --dark:#1a1a1a; --white:#ffffff; --gray-bg:#f5f6f8;
+  --gray-border:#e2e4e9; --gray-text:#8a8f9d; --gray-label:#b0b4bf;
+  --sidebar-w:260px; --navbar-h:60px; --discord:#5865F2;
+}
+body { font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif; background:var(--gray-bg); min-width:1440px; }
+
+/* ── TOAST ── */
+#toast {
+  position:fixed; bottom:28px; right:28px; z-index:9999;
+  background:var(--dark); color:var(--white); padding:12px 20px;
+  border-radius:10px; font-size:13px; font-weight:500;
+  border-left:3px solid var(--green);
+  transform:translateY(80px); opacity:0;
+  transition:all 0.3s ease; pointer-events:none;
+}
+#toast.show { transform:translateY(0); opacity:1; }
+
+/* ── LOGIN ── */
+#page-login { width:1440px; height:100vh; display:flex; flex-direction:row; }
+.login-left {
+  width:680px; background:var(--dark);
+  display:flex; flex-direction:column; justify-content:center; align-items:flex-start;
+  padding:80px; position:relative; overflow:hidden;
+}
+.login-left::before { content:''; position:absolute; top:-120px; right:-120px; width:400px; height:400px; border-radius:50%; background:radial-gradient(circle,rgba(0,200,150,.18) 0%,transparent 70%); }
+.login-left::after  { content:''; position:absolute; bottom:-80px; left:-80px; width:300px; height:300px; border-radius:50%; background:radial-gradient(circle,rgba(0,200,150,.1) 0%,transparent 70%); }
+.login-brand { display:flex; align-items:center; gap:10px; margin-bottom:64px; position:relative; z-index:1; }
+.login-brand svg { width:36px; height:36px; }
+.login-brand span { color:var(--white); font-size:20px; font-weight:700; }
+.login-hero-tag { background:rgba(0,200,150,.15); border:1px solid rgba(0,200,150,.3); color:var(--green); font-size:11px; font-weight:600; letter-spacing:1px; padding:5px 12px; border-radius:20px; margin-bottom:24px; display:inline-flex; align-items:center; gap:6px; position:relative; z-index:1; }
+.login-hero-tag::before { content:'●'; font-size:8px; }
+.login-left h1 { color:var(--white); font-size:48px; font-weight:800; line-height:1.1; letter-spacing:-1px; margin-bottom:20px; position:relative; z-index:1; }
+.login-left h1 span { color:var(--green); }
+.login-left p { color:#9aa0b0; font-size:16px; line-height:1.6; max-width:440px; position:relative; z-index:1; }
+.login-stats { display:flex; gap:40px; margin-top:56px; position:relative; z-index:1; }
+.login-stat strong { display:block; color:var(--white); font-size:28px; font-weight:800; }
+.login-stat span { color:#9aa0b0; font-size:12px; }
+.login-right { flex:1; background:var(--white); display:flex; align-items:center; justify-content:center; }
+.login-form-box { width:400px; }
+.login-form-box h2 { font-size:26px; font-weight:700; color:var(--dark); margin-bottom:6px; }
+.login-form-box > p { color:var(--gray-text); font-size:14px; margin-bottom:36px; }
+.form-group { margin-bottom:18px; }
+.form-group label { display:block; font-size:12px; font-weight:600; color:#4a4f5e; margin-bottom:6px; }
+.form-group input { width:100%; height:44px; border:1.5px solid var(--gray-border); border-radius:8px; padding:0 14px; font-size:14px; color:var(--dark); outline:none; transition:border-color .2s; background:#fafafa; }
+.form-group input:focus { border-color:var(--green); background:var(--white); }
+.login-error { color:#e53e3e; font-size:12px; margin-top:6px; display:none; }
+.btn-login { width:100%; height:46px; background:var(--green); color:var(--white); border:none; border-radius:50px; font-size:15px; font-weight:600; cursor:pointer; transition:background .2s; margin-top:8px; }
+.btn-login:hover { background:var(--green-dark); }
+.btn-login:disabled { background:#ccc; cursor:not-allowed; }
+.login-divider { text-align:center; color:var(--gray-label); font-size:12px; margin:20px 0; }
+.login-footer { text-align:center; font-size:13px; color:var(--gray-text); margin-top:24px; }
+.login-footer a { color:var(--green); font-weight:600; cursor:pointer; text-decoration:none; }
+
+/* ── SHELL ── */
+#app-shell { display:none; flex-direction:row; width:1440px; min-height:100vh; }
+
+/* SIDEBAR */
+.sidebar { width:var(--sidebar-w); min-width:var(--sidebar-w); background:var(--white); border-right:1px solid var(--gray-border); display:flex; flex-direction:column; min-height:100vh; position:fixed; left:0; top:0; bottom:0; z-index:100; }
+.sidebar-top { display:flex; align-items:center; justify-content:space-between; padding:0 18px; height:var(--navbar-h); border-bottom:1px solid var(--gray-border); }
+.sidebar-brand { display:flex; align-items:center; gap:8px; }
+.sidebar-brand svg { width:28px; height:28px; }
+.sidebar-brand span { font-size:15px; font-weight:700; color:var(--dark); }
+.sidebar-panel-btn { background:none; border:none; cursor:pointer; color:var(--gray-text); padding:4px; border-radius:4px; }
+.sidebar-nav { flex:1; padding:20px 10px 10px; overflow-y:auto; }
+.sidebar-section-label { font-size:10px; font-weight:700; color:var(--gray-label); letter-spacing:1px; padding:0 8px; margin-bottom:6px; margin-top:16px; }
+.sidebar-section-label:first-child { margin-top:0; }
+.sidebar-item { display:flex; align-items:center; gap:10px; padding:9px 10px; border-radius:8px; font-size:13.5px; font-weight:500; color:#4a4f5e; cursor:pointer; transition:all .15s; margin-bottom:2px; }
+.sidebar-item:hover { background:var(--gray-bg); color:var(--dark); }
+.sidebar-item.active { background:var(--green-light); color:var(--green); font-weight:600; }
+.sidebar-item svg { width:16px; height:16px; flex-shrink:0; }
+.sidebar-bottom { padding:10px; border-top:1px solid var(--gray-border); }
+.sidebar-item-special { background:var(--gray-bg); }
+.sidebar-item-discord { color:var(--discord) !important; }
+.sidebar-profile { display:flex; align-items:center; gap:10px; padding:10px; border-radius:8px; cursor:pointer; transition:background .15s; }
+.sidebar-profile:hover { background:var(--gray-bg); }
+.avatar { width:32px; height:32px; border-radius:50%; background:var(--green); display:flex; align-items:center; justify-content:center; color:var(--white); font-size:12px; font-weight:700; flex-shrink:0; }
+.profile-info { flex:1; min-width:0; }
+.profile-name { font-size:13px; font-weight:600; color:var(--dark); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.profile-role { font-size:11px; color:var(--gray-text); }
+
+/* MAIN */
+.main-area { margin-left:var(--sidebar-w); flex:1; display:flex; flex-direction:column; min-height:100vh; }
+.navbar { height:var(--navbar-h); background:var(--white); border-bottom:1px solid var(--gray-border); display:flex; align-items:center; padding:0 24px; position:sticky; top:0; z-index:50; gap:0; }
+.navbar-tabs { display:flex; gap:4px; flex:1; }
+.navbar-tab { display:flex; align-items:center; gap:6px; padding:7px 14px; border-radius:8px; font-size:13.5px; font-weight:500; color:var(--gray-text); cursor:pointer; transition:all .15s; border:none; background:none; }
+.navbar-tab:hover { background:var(--gray-bg); color:var(--dark); }
+.navbar-tab.active { background:var(--gray-bg); color:var(--dark); font-weight:600; }
+.navbar-tab svg { width:14px; height:14px; }
+.navbar-right { display:flex; align-items:center; gap:12px; }
+.navbar-icon-btn { width:34px; height:34px; border-radius:8px; background:none; border:none; cursor:pointer; display:flex; align-items:center; justify-content:center; color:var(--gray-text); transition:background .15s; position:relative; }
+.navbar-icon-btn:hover { background:var(--gray-bg); }
+.navbar-badge { position:absolute; top:4px; right:4px; width:16px; height:16px; border-radius:50%; background:#e53e3e; color:var(--white); font-size:9px; font-weight:700; display:flex; align-items:center; justify-content:center; }
+
+/* CONTENT */
+.page-content { flex:1; padding:28px 32px; display:none; }
+.page-content.active { display:block; }
+
+/* ── SHARED ── */
+.hero-card { background:var(--dark); border-radius:16px; padding:40px 44px; display:flex; align-items:center; justify-content:space-between; margin-bottom:28px; }
+.hero-card-left { flex:1; }
+.hero-tag { display:inline-flex; align-items:center; gap:6px; background:rgba(0,200,150,.15); border:1px solid rgba(0,200,150,.3); color:var(--green); font-size:11px; font-weight:600; letter-spacing:.5px; padding:5px 12px; border-radius:20px; margin-bottom:16px; }
+.hero-tag::before { content:'●'; font-size:7px; }
+.hero-card h2 { color:var(--white); font-size:36px; font-weight:800; letter-spacing:-.5px; line-height:1.1; margin-bottom:12px; }
+.hero-card p { color:#9aa0b0; font-size:14px; line-height:1.6; max-width:480px; margin-bottom:28px; }
+.btn-primary { display:inline-flex; align-items:center; gap:8px; background:var(--green); color:var(--white); border:none; border-radius:50px; padding:12px 24px; font-size:14px; font-weight:600; cursor:pointer; transition:background .2s; }
+.btn-primary:hover { background:var(--green-dark); }
+.btn-ghost { display:inline-flex; align-items:center; gap:8px; background:rgba(255,255,255,.08); color:var(--white); border:none; border-radius:50px; padding:12px 20px; font-size:14px; font-weight:500; cursor:pointer; margin-left:12px; }
+.donut-wrap { position:relative; width:100px; height:100px; }
+.donut-wrap svg { width:100px; height:100px; }
+.donut-label { position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); text-align:center; }
+.donut-label strong { display:block; color:var(--white); font-size:24px; font-weight:800; line-height:1; }
+.donut-label span { color:#9aa0b0; font-size:10px; font-weight:600; letter-spacing:.5px; }
+.card { background:var(--white); border-radius:12px; border:1px solid var(--gray-border); padding:20px; }
+.badge-green { background:rgba(0,200,150,.12); color:#00a87e; font-size:11px; font-weight:700; padding:3px 10px; border-radius:20px; }
+.badge-category { font-size:10px; font-weight:700; letter-spacing:.5px; padding:2px 8px; border-radius:4px; }
+.badge-mercado { background:#e0f2fe; color:#0369a1; }
+.badge-alerta { background:#fef3c7; color:#b45309; }
+.badge-actividad { background:#f0fdf4; color:#15803d; }
+.pill-tag { background:#f0f2f5; color:#4a4f5e; font-size:11px; padding:4px 10px; border-radius:6px; display:inline-block; margin:2px; }
+.btn-sm { background:var(--gray-bg); border:1px solid var(--gray-border); border-radius:8px; padding:8px 14px; font-size:12px; font-weight:600; color:var(--dark); cursor:pointer; width:100%; transition:all .15s; }
+.btn-sm:hover { background:var(--green); color:var(--white); border-color:var(--green); }
+
+/* ── INICIO ── */
+.step-card { background:var(--white); border-radius:14px; border:1.5px solid var(--gray-border); padding:28px 32px; }
+.step-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:20px; }
+.step-grid { display:flex; flex-direction:row; gap:24px; }
+.step-col { flex:1; }
+.field-label { font-size:12px; font-weight:600; color:#4a4f5e; margin-bottom:6px; display:block; }
+.field-input { width:100%; height:42px; border:1.5px solid var(--gray-border); border-radius:8px; padding:0 12px; font-size:13px; color:var(--dark); background:#fafafa; outline:none; margin-bottom:14px; }
+.field-input:focus { border-color:var(--green); background:var(--white); }
+
+/* ── RF-10 ── */
+.rf10-header { display:flex; align-items:center; gap:16px; margin-bottom:24px; }
+.system-badge { display:flex; align-items:center; gap:6px; font-size:12px; color:var(--green); font-weight:600; }
+.system-dot { width:8px; height:8px; border-radius:50%; background:var(--green); animation:pulse 2s infinite; }
+@keyframes pulse { 0%,100%{opacity:1}50%{opacity:.4} }
+.rf10-filters { display:flex; align-items:center; gap:10px; margin-left:auto; }
+.rf10-filters select { height:36px; border:1.5px solid var(--gray-border); border-radius:8px; padding:0 12px; font-size:13px; color:var(--dark); background:var(--white); cursor:pointer; outline:none; }
+.rf10-layout { display:flex; flex-direction:row; gap:24px; }
+.rf10-grid-area { flex:1; }
+.rf10-right { width:280px; flex-shrink:0; display:flex; flex-direction:column; gap:16px; }
+.rec-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:16px; }
+.rec-card { background:var(--white); border:1.5px solid var(--gray-border); border-radius:12px; padding:18px; display:flex; flex-direction:column; gap:10px; transition:box-shadow .2s; }
+.rec-card:hover { box-shadow:0 4px 20px rgba(0,0,0,.08); }
+.rec-card-top { display:flex; align-items:flex-start; justify-content:space-between; }
+.rec-card h4 { font-size:14px; font-weight:700; color:var(--dark); line-height:1.3; }
+.rec-desc { font-size:12px; color:var(--gray-text); line-height:1.5; }
+.rec-tags { display:flex; flex-wrap:wrap; gap:4px; }
+.rec-footer { display:flex; align-items:center; justify-content:space-between; font-size:11px; color:var(--gray-text); border-top:1px solid var(--gray-border); padding-top:10px; margin-top:auto; }
+.prioridad.alta { color:#e53e3e; font-weight:600; }
+.prioridad.media { color:#d97706; font-weight:600; }
+.generating { opacity:.5; animation:fadeLoop 1s infinite; }
+@keyframes fadeLoop { 0%,100%{opacity:.5}50%{opacity:1} }
+
+/* ── RF-11 ── */
+.rf11-topbar { display:flex; align-items:center; gap:12px; margin-bottom:24px; }
+.search-bar { flex:1; height:40px; border:1.5px solid var(--gray-border); border-radius:8px; padding:0 14px 0 36px; font-size:13px; background:var(--white) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%238a8f9d' stroke-width='2'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cpath d='m21 21-4.35-4.35'/%3E%3C/svg%3E") no-repeat 12px center; outline:none; color:var(--dark); }
+.time-tabs { display:flex; gap:4px; }
+.time-tab { padding:8px 16px; border-radius:8px; border:1.5px solid var(--gray-border); background:var(--white); font-size:13px; font-weight:500; cursor:pointer; color:var(--gray-text); transition:all .15s; }
+.time-tab.active { background:var(--dark); color:var(--white); border-color:var(--dark); }
+.rf11-layout { display:flex; flex-direction:row; gap:24px; }
+.signal-feed { flex:1; display:flex; flex-direction:column; gap:12px; }
+.signal-row { display:flex; align-items:center; gap:14px; background:var(--white); border:1.5px solid var(--gray-border); border-radius:10px; padding:14px 16px; transition:box-shadow .2s; }
+.signal-row:hover { box-shadow:0 2px 12px rgba(0,0,0,.07); }
+.signal-row.hidden { display:none; }
+.signal-icon { width:36px; height:36px; border-radius:8px; background:var(--gray-bg); display:flex; align-items:center; justify-content:center; flex-shrink:0; font-size:18px; }
+.signal-body { flex:1; min-width:0; }
+.signal-title { font-size:13px; font-weight:600; color:var(--dark); }
+.signal-desc { font-size:12px; color:var(--gray-text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.signal-meta { display:flex; align-items:center; gap:8px; flex-shrink:0; }
+.signal-time { font-size:11px; color:var(--gray-label); }
+.rf11-right { width:300px; flex-shrink:0; display:flex; flex-direction:column; gap:16px; }
+.counters { display:flex; gap:12px; }
+.counter-item { flex:1; background:var(--white); border:1.5px solid var(--gray-border); border-radius:10px; padding:16px; text-align:center; }
+.counter-num { font-size:28px; font-weight:800; line-height:1; }
+.counter-label { font-size:11px; color:var(--gray-text); margin-top:4px; }
+.c-mercado { color:var(--green); }
+.c-actividad { color:#3b82f6; }
+.c-alerta { color:#f59e0b; }
+.dest-card { background:var(--dark); border-radius:12px; padding:20px; }
+.dest-tag { font-size:10px; font-weight:700; letter-spacing:1px; color:var(--green); margin-bottom:10px; display:flex; align-items:center; gap:6px; }
+.dest-tag::before { content:'●'; font-size:7px; }
+.dest-title { color:var(--white); font-size:16px; font-weight:700; line-height:1.3; margin-bottom:8px; }
+.dest-desc { color:#9aa0b0; font-size:12px; line-height:1.5; margin-bottom:16px; }
+.acciones-box { background:var(--white); border:1.5px solid var(--gray-border); border-radius:12px; padding:16px; }
+.accion-item { display:flex; align-items:center; justify-content:space-between; padding:10px 0; border-bottom:1px solid var(--gray-border); font-size:13px; color:var(--dark); cursor:pointer; transition:color .15s; }
+.accion-item:last-child { border-bottom:none; padding-bottom:0; }
+.accion-item:hover { color:var(--green); }
+
+/* ── RF-13 ── */
+.metrics-row { display:flex; flex-direction:row; gap:16px; margin-bottom:24px; }
+.metric-card { flex:1; background:var(--white); border:1.5px solid var(--gray-border); border-radius:12px; padding:20px; }
+.metric-label { font-size:11px; font-weight:600; color:var(--gray-text); letter-spacing:.5px; margin-bottom:10px; }
+.metric-value { font-size:32px; font-weight:800; color:var(--dark); line-height:1; }
+.metric-sub { font-size:11px; color:var(--gray-text); margin-top:4px; }
+.metric-card.donut-card { display:flex; align-items:center; gap:16px; }
+.second-row { display:flex; flex-direction:row; gap:24px; }
+.next-action { flex:0 0 60%; background:var(--dark); border-radius:14px; padding:32px; }
+.next-action h3 { color:#9aa0b0; font-size:11px; font-weight:700; letter-spacing:1px; margin-bottom:12px; }
+.next-action h2 { color:var(--white); font-size:22px; font-weight:700; margin-bottom:8px; line-height:1.3; }
+.next-action p { color:#9aa0b0; font-size:13px; line-height:1.5; margin-bottom:24px; }
+.activity-box { flex:1; background:var(--white); border:1.5px solid var(--gray-border); border-radius:14px; padding:20px; }
+.activity-box h3 { font-size:14px; font-weight:700; color:var(--dark); margin-bottom:14px; }
+.activity-item { display:flex; align-items:flex-start; gap:10px; padding:10px 0; border-bottom:1px solid var(--gray-border); }
+.activity-item:last-child { border-bottom:none; }
+.activity-dot { width:8px; height:8px; border-radius:50%; background:var(--green); margin-top:4px; flex-shrink:0; }
+.activity-text { font-size:12px; color:var(--dark); line-height:1.4; }
+.activity-time { font-size:11px; color:var(--gray-label); margin-top:2px; }
+
+/* ── RF-17 ── */
+.form-sections { display:flex; flex-direction:row; gap:24px; }
+.form-col { flex:1; display:flex; flex-direction:column; gap:20px; }
+.form-section { background:var(--white); border:1.5px solid var(--gray-border); border-radius:14px; padding:24px; }
+.section-badge { display:inline-flex; align-items:center; gap:6px; background:rgba(0,200,150,.1); border:1px solid rgba(0,200,150,.25); color:var(--green); font-size:10px; font-weight:700; letter-spacing:.8px; padding:4px 12px; border-radius:20px; margin-bottom:14px; }
+.section-badge::before { content:'●'; font-size:6px; }
+.form-section h3 { font-size:16px; font-weight:700; color:var(--dark); margin-bottom:18px; }
+.field-row { display:flex; flex-direction:row; gap:14px; }
+.field-row .field-group { flex:1; }
+.field-group { margin-bottom:14px; }
+.f-label { font-size:11px; font-weight:600; color:#4a4f5e; letter-spacing:.3px; margin-bottom:6px; display:block; }
+.f-input { width:100%; height:40px; border:1.5px solid var(--gray-border); border-radius:8px; padding:0 12px; font-size:13px; color:var(--dark); background:#fafafa; outline:none; transition:border-color .2s; }
+.f-input:focus { border-color:var(--green); background:var(--white); }
+.save-bar { display:flex; justify-content:flex-end; margin-top:24px; gap:12px; }
+.btn-cancel { background:none; border:1.5px solid var(--gray-border); border-radius:50px; padding:10px 24px; font-size:14px; font-weight:600; color:var(--gray-text); cursor:pointer; }
+
+/* ── RF-18 ── */
+.compat-hero { background:var(--dark); border-radius:16px; padding:40px; display:flex; align-items:center; justify-content:space-between; margin-bottom:24px; }
+.compat-hero-left h2 { color:var(--white); font-size:28px; font-weight:800; margin-bottom:8px; }
+.compat-hero-left p { color:#9aa0b0; font-size:14px; line-height:1.5; max-width:400px; }
+.donut-big { position:relative; width:140px; height:140px; flex-shrink:0; }
+.donut-big svg { width:140px; height:140px; }
+.donut-big-label { position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); text-align:center; }
+.donut-big-label strong { color:var(--white); font-size:32px; font-weight:800; display:block; line-height:1; }
+.donut-big-label span { color:#9aa0b0; font-size:11px; }
+.factors-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:16px; margin-bottom:24px; }
+.factor-card { background:var(--white); border:1.5px solid var(--gray-border); border-radius:12px; padding:20px; }
+.factor-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; }
+.factor-name { font-size:14px; font-weight:700; color:var(--dark); }
+.factor-pct { font-size:20px; font-weight:800; color:var(--green); }
+.progress-bar { height:6px; background:var(--gray-border); border-radius:3px; overflow:hidden; }
+.progress-fill { height:100%; background:var(--green); border-radius:3px; width:0; transition:width 1s ease; }
+.factor-desc { font-size:12px; color:var(--gray-text); margin-top:8px; }
+
+/* ── RF-19 ── */
+.rank1-card { background:var(--dark); border-radius:14px; padding:28px 32px; display:flex; align-items:center; gap:24px; margin-bottom:24px; }
+.rank-num { font-size:48px; font-weight:900; color:var(--green); line-height:1; flex-shrink:0; }
+.rank1-info { flex:1; }
+.rank1-info h2 { color:var(--white); font-size:22px; font-weight:700; margin-bottom:4px; }
+.rank1-empresa { color:#9aa0b0; font-size:14px; margin-bottom:12px; }
+.rank1-tags { display:flex; gap:8px; flex-wrap:wrap; margin-top:10px; }
+.rank1-tag { background:rgba(255,255,255,.08); color:#cdd0d8; font-size:11px; padding:4px 10px; border-radius:6px; }
+.rank-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:16px; }
+.rank-card { background:var(--white); border:1.5px solid var(--gray-border); border-radius:12px; padding:20px; display:flex; flex-direction:column; gap:10px; transition:box-shadow .2s; }
+.rank-card:hover { box-shadow:0 4px 16px rgba(0,0,0,.08); }
+.rank-card-top { display:flex; align-items:flex-start; gap:12px; }
+.rank-card-num { font-size:24px; font-weight:900; color:var(--gray-border); line-height:1; flex-shrink:0; }
+.rank-card-info h4 { font-size:15px; font-weight:700; color:var(--dark); }
+.rank-card-info .empresa { font-size:12px; color:var(--gray-text); }
+.rank-card-tags { display:flex; gap:6px; flex-wrap:wrap; }
+.tag-top { background:rgba(0,200,150,.1); color:#00a87e; font-size:10px; font-weight:700; padding:3px 8px; border-radius:4px; }
+.tag-new { background:#eff6ff; color:#1d4ed8; font-size:10px; font-weight:700; padding:3px 8px; border-radius:4px; }
+.tag-exp { background:#fff7ed; color:#c2410c; font-size:10px; font-weight:700; padding:3px 8px; border-radius:4px; }
+
+/* ── RF-20 ── */
+.sim-hero { background:var(--dark); border-radius:16px; padding:36px 40px; margin-bottom:24px; }
+.sim-hero h2 { color:var(--white); font-size:30px; font-weight:800; margin-bottom:20px; }
+.sim-tabs { display:flex; gap:8px; flex-wrap:wrap; }
+.sim-tab { padding:9px 20px; border-radius:50px; border:1.5px solid rgba(255,255,255,.15); background:none; color:#9aa0b0; font-size:13px; font-weight:500; cursor:pointer; transition:all .2s; }
+.sim-tab.active { background:var(--green); color:var(--white); border-color:var(--green); font-weight:600; }
+.sim-layout { display:flex; flex-direction:row; gap:24px; }
+.timeline-wrap { flex:1; }
+.timeline-label { font-size:14px; font-weight:700; color:var(--dark); margin-bottom:20px; }
+.timeline { display:flex; flex-direction:row; gap:0; }
+.hito { flex:1; display:flex; flex-direction:column; align-items:center; position:relative; }
+.hito:not(:last-child)::after { content:''; position:absolute; top:24px; left:50%; width:100%; height:2px; background:var(--gray-border); z-index:0; }
+.hito-icon { width:48px; height:48px; border-radius:50%; background:var(--green-light); border:2px solid var(--green); display:flex; align-items:center; justify-content:center; position:relative; z-index:1; margin-bottom:14px; flex-shrink:0; }
+.hito-icon svg { width:20px; height:20px; color:var(--green); }
+.hito-body { text-align:center; padding:0 12px; }
+.hito-num { font-size:10px; font-weight:700; color:var(--green); letter-spacing:1px; margin-bottom:4px; }
+.hito-title { font-size:14px; font-weight:700; color:var(--dark); margin-bottom:6px; }
+.hito-desc { font-size:12px; color:var(--gray-text); line-height:1.4; }
+.sim-right { width:260px; flex-shrink:0; display:flex; flex-direction:column; gap:16px; }
+.potencial-card { background:var(--white); border:1.5px solid var(--gray-border); border-radius:12px; padding:20px; }
+.potencial-label { font-size:11px; font-weight:600; color:var(--gray-text); letter-spacing:.5px; margin-bottom:8px; }
+.potencial-value { font-size:22px; font-weight:800; color:var(--green); margin-bottom:4px; }
+.potencial-desc { font-size:12px; color:var(--gray-text); line-height:1.4; }
+</style>
+</head>
+<body>
+
+<div id="toast"></div>
+
+<!-- LOGIN -->
+<div id="page-login">
+  <div class="login-left">
+    <div class="login-brand">
+      <svg viewBox="0 0 36 36" fill="none"><path d="M18 3L32 10V18C32 25.5 26 32 18 34C10 32 4 25.5 4 18V10L18 3Z" fill="#00C896" fill-opacity=".2" stroke="#00C896" stroke-width="1.5"/><path d="M13 18l3.5 3.5L23 14" stroke="#00C896" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <span>Chaindrenciales</span>
+    </div>
+    <div class="login-hero-tag">Plataforma de reclutamiento contextual</div>
+    <h1>Encuentra tu<br><span>ruta profesional</span><br>ideal.</h1>
+    <p>COCOX conecta tu perfil, intereses y contexto con las oportunidades que realmente encajan contigo.</p>
+    <div class="login-stats">
+      <div class="login-stat"><strong>+1,200</strong><span>Vacantes activas</span></div>
+      <div class="login-stat"><strong>94%</strong><span>Compatibilidad promedio</span></div>
+      <div class="login-stat"><strong>3,500+</strong><span>Aspirantes registrados</span></div>
+    </div>
+  </div>
+  <div class="login-right">
+    <div class="login-form-box">
+      <h2>Bienvenida de vuelta 👋</h2>
+      <p>Ingresa tus credenciales para continuar tu trayectoria.</p>
+      <div class="form-group">
+        <label>Correo electrónico</label>
+        <input type="email" id="login-email" placeholder="samantha@ejemplo.com" value="samantha@cocox.mx">
+      </div>
+      <div class="form-group">
+        <label>Contraseña</label>
+        <input type="password" id="login-pass" placeholder="••••••••" value="cocox2024">
+        <div class="login-error" id="login-error">Correo o contraseña incorrectos.</div>
+      </div>
+      <button class="btn-login" id="btn-login">Iniciar sesión →</button>
+      <div class="login-divider">— o continúa con —</div>
+      <div class="login-footer">¿No tienes cuenta? <a onclick="App.goToApp()">Regístrate gratis</a></div>
+    </div>
+  </div>
+</div>
+
+<!-- APP SHELL -->
+<div id="app-shell">
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+    <div class="sidebar-top">
+      <div class="sidebar-brand">
+        <svg viewBox="0 0 28 28" fill="none"><path d="M14 2L26 8V14C26 19.8 21.5 25 14 27C6.5 25 2 19.8 2 14V8L14 2Z" fill="#00C896" fill-opacity=".15" stroke="#00C896" stroke-width="1.5"/><path d="M10 14l2.5 2.5L18 11" stroke="#00C896" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <span>Chaindrenciales</span>
+      </div>
+      <button class="sidebar-panel-btn">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18"/></svg>
+      </button>
+    </div>
+    <div class="sidebar-nav">
+      <div class="sidebar-section-label">MI TRAZABILIDAD</div>
+      <div class="sidebar-item active" data-page="inicio">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>Inicio
+      </div>
+      <div class="sidebar-section-label">CONSTRUIR</div>
+      <div class="sidebar-item" data-page="rf10">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/></svg>Explorar rutas
+      </div>
+      <div class="sidebar-item" data-page="rf11">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>Mis intereses
+      </div>
+      <div class="sidebar-item" data-page="rf13">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>Pruebas prácticas
+      </div>
+    </div>
+    <div class="sidebar-bottom">
+      <div class="sidebar-item sidebar-item-special" data-page="rf17">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/></svg>Integraciones
+      </div>
+      <div class="sidebar-item sidebar-item-special sidebar-item-discord" data-page="rf18">
+        <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057c.002.022.015.043.032.056a19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028c.462-.63.874-1.295 1.226-1.994a.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03z"/></svg>Únete a Discord
+      </div>
+      <div class="sidebar-profile" data-page="rf19">
+        <div class="avatar">SG</div>
+        <div class="profile-info">
+          <div class="profile-name" id="profile-display-name">Samantha G Herná...</div>
+          <div class="profile-role">Aspirante</div>
+        </div>
+        <div style="color:var(--gray-text);font-size:18px;">⋯</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MAIN -->
+  <div class="main-area">
+    <div class="navbar">
+      <div class="navbar-tabs">
+        <button class="navbar-tab active" data-page="inicio">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>Inicio
+        </button>
+        <button class="navbar-tab" data-page="rf10">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>Sugerencias
+        </button>
+        <button class="navbar-tab" data-page="rf19">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>Vacantes
+        </button>
+        <button class="navbar-tab" data-page="rf20">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>Recursos
+        </button>
+      </div>
+      <div class="navbar-right">
+        <button class="navbar-icon-btn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg>
+        </button>
+        <button class="navbar-icon-btn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+          <div class="navbar-badge">2</div>
+        </button>
+      </div>
+    </div>
+
+    <!-- INICIO -->
+    <div id="page-inicio" class="page-content active">
+      <div class="hero-card">
+        <div class="hero-card-left">
+          <div class="hero-tag">Ya casi tienes tu ruta</div>
+          <h2 id="hero-greeting">Buenos días, Samantha.</h2>
+          <p>Ya configuraste tus intereses. El siguiente paso es elegir tu ruta profesional y comenzar a avanzar por ella hito a hito.</p>
+          <button class="btn-primary" onclick="App.nav('rf17')">Completar perfil base →</button>
+          <button class="btn-ghost">⊙ ¿Cómo funciona esto?</button>
+        </div>
+        <div class="donut-wrap">
+          <svg viewBox="0 0 100 100">
+            <circle cx="50" cy="50" r="40" fill="none" stroke="#2a2a2a" stroke-width="10"/>
+            <circle id="donut-inicio" cx="50" cy="50" r="40" fill="none" stroke="#00C896" stroke-width="10"
+              stroke-dasharray="0 251.2" stroke-linecap="round" transform="rotate(-90 50 50)"/>
+          </svg>
+          <div class="donut-label"><strong id="donut-pct">25</strong><span>% CONSTRUIDO</span></div>
+        </div>
+      </div>
+      <div class="step-card">
+        <div class="step-header">
+          <div class="hero-tag" style="margin-bottom:0">PASO 01 — EMPIEZA AQUÍ</div>
+          <span style="font-size:12px;color:var(--gray-text);">⏱ 2 minutos</span>
+        </div>
+        <h3 style="font-size:20px;font-weight:700;color:var(--dark);margin-bottom:8px;">Cuéntanos tu punto de partida</h3>
+        <p style="font-size:13px;color:var(--gray-text);margin-bottom:24px;max-width:500px;">No necesitas experiencia laboral para estar aquí. Al registrar tu escuela o condición de estudiante, el sistema puede entender tu contexto y empezar a personalizar tu ruta.</p>
+        <div class="step-grid">
+          <div class="step-col">
+            <label class="field-label">Institución educativa</label>
+            <input class="field-input" id="inicio-escuela" placeholder="Ej: Universidad Nacional Autónoma de México">
+            <label class="field-label">Carrera o área de estudio</label>
+            <input class="field-input" id="inicio-carrera" placeholder="Ej: Ingeniería en Sistemas">
+          </div>
+          <div class="step-col">
+            <label class="field-label">Semestre o año actual</label>
+            <input class="field-input" id="inicio-semestre" placeholder="Ej: 8vo semestre">
+            <label class="field-label">Ciudad</label>
+            <input class="field-input" id="inicio-ciudad" placeholder="Ej: Querétaro, México">
+          </div>
+        </div>
+        <button class="btn-primary" style="margin-top:8px;" onclick="App.saveInicio()">Guardar y continuar →</button>
+      </div>
+    </div>
+
+    <!-- RF-10 RECOMENDACIONES -->
+    <div id="page-rf10" class="page-content">
+      <div class="rf10-header">
+        <div>
+          <div style="font-size:20px;font-weight:700;color:var(--dark);margin-bottom:4px;">Generación de Recomendaciones</div>
+          <div class="system-badge"><span class="system-dot"></span> System Online &nbsp;|&nbsp; <span style="color:var(--gray-text);font-weight:400;" id="rec-count">Mostrando 6 rutas de inteligencia institucional</span></div>
+        </div>
+        <div class="rf10-filters">
+          <select id="filter-cat"><option value="">Categoría ▾</option><option>Tecnología</option><option>Diseño</option><option>Datos</option><option>Backend</option></select>
+          <select id="filter-prio"><option value="">Prioridad ▾</option><option>Alta</option><option>Media</option><option>Baja</option></select>
+          <button class="btn-primary" style="padding:8px 18px;font-size:13px;" onclick="App.generarRecs()">+ Generar</button>
+        </div>
+      </div>
+      <div class="rf10-layout">
+        <div class="rf10-grid-area">
+          <div class="rec-grid" id="rec-grid"></div>
+        </div>
+        <div class="rf10-right">
+          <div class="card">
+            <div style="font-size:10px;font-weight:700;letter-spacing:1px;color:var(--gray-text);margin-bottom:12px;">DESTACADOS</div>
+            <div style="border-left:3px solid var(--green);padding-left:12px;margin-bottom:14px;">
+              <div style="font-size:11px;color:var(--green);font-weight:600;margin-bottom:2px;">Novedad</div>
+              <div style="font-size:13px;font-weight:700;color:var(--dark);margin-bottom:2px;">Puente Cross-chain L2</div>
+              <div style="font-size:12px;color:var(--gray-text);">Nueva integración disponible</div>
+            </div>
+            <div style="border-left:3px solid #3b82f6;padding-left:12px;">
+              <div style="font-size:11px;color:#3b82f6;font-weight:600;margin-bottom:2px;">Tendencia</div>
+              <div style="font-size:13px;font-weight:700;color:var(--dark);margin-bottom:2px;">Validación PoS</div>
+              <div style="font-size:12px;color:var(--gray-text);">Incremento del 12% en demanda</div>
+            </div>
+          </div>
+          <div class="card">
+            <div style="font-size:10px;font-weight:700;letter-spacing:1px;color:var(--gray-text);margin-bottom:14px;">ESTADÍSTICAS RÁPIDAS</div>
+            <div style="display:flex;justify-content:center;margin-bottom:14px;">
+              <div style="position:relative;width:90px;height:90px;">
+                <svg viewBox="0 0 90 90" width="90" height="90">
+                  <circle cx="45" cy="45" r="35" fill="none" stroke="#e2e4e9" stroke-width="8"/>
+                  <circle cx="45" cy="45" r="35" fill="none" stroke="#00C896" stroke-width="8"
+                    stroke-dasharray="164.9 219.9" stroke-linecap="round" transform="rotate(-90 45 45)"/>
+                </svg>
+                <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center;">
+                  <strong style="color:var(--dark);font-size:18px;font-weight:800;">75%</strong>
+                  <div style="font-size:9px;color:var(--gray-text);">Efficiency</div>
+                </div>
+              </div>
+            </div>
+            <div style="margin-bottom:10px;">
+              <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px;"><span>Confianza Sistema</span><span style="color:var(--green);font-weight:700;">94%</span></div>
+              <div style="height:4px;background:var(--gray-border);border-radius:2px;"><div style="width:94%;height:100%;background:var(--green);border-radius:2px;"></div></div>
+            </div>
+            <div>
+              <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px;"><span>Seguridad Activos</span><span style="color:var(--green);font-weight:700;">100%</span></div>
+              <div style="height:4px;background:var(--gray-border);border-radius:2px;"><div style="width:100%;height:100%;background:var(--green);border-radius:2px;"></div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- RF-11 SEÑALES -->
+    <div id="page-rf11" class="page-content">
+      <div class="rf11-topbar">
+        <input class="search-bar" type="text" id="signal-search" placeholder="Buscar señales o mercados...">
+        <div class="time-tabs">
+          <button class="time-tab active" data-range="hoy" onclick="App.filterSignals('hoy',this)">Hoy</button>
+          <button class="time-tab" data-range="semana" onclick="App.filterSignals('semana',this)">Esta semana</button>
+        </div>
+      </div>
+      <div class="rf11-layout">
+        <div>
+          <div style="font-size:14px;font-weight:700;color:var(--dark);margin-bottom:12px;">Señales Recientes</div>
+          <div class="signal-feed" id="signal-feed"></div>
+        </div>
+        <div class="rf11-right">
+          <div class="counters">
+            <div class="counter-item"><div class="counter-num c-mercado" id="cnt-mercado">0</div><div class="counter-label">Mercado</div></div>
+            <div class="counter-item"><div class="counter-num c-actividad" id="cnt-actividad">0</div><div class="counter-label">Actividad</div></div>
+            <div class="counter-item"><div class="counter-num c-alerta" id="cnt-alerta">0</div><div class="counter-label">Alertas</div></div>
+          </div>
+          <div class="dest-card">
+            <div class="dest-tag">SEÑAL DESTACADA</div>
+            <div class="dest-title">Giro en la Micro-tendencia de Stablecoins</div>
+            <div class="dest-desc">Se observa flujo masivo hacia USDC desde protocolos DeFi, anticipando volatilidad institucional.</div>
+            <button class="btn-primary" style="width:100%;justify-content:center;font-size:13px;">Ver Análisis Profundo</button>
+          </div>
+          <div class="acciones-box">
+            <div style="font-size:10px;font-weight:700;letter-spacing:1px;color:var(--gray-text);margin-bottom:8px;">ACCIONES CONTEXTUALES</div>
+            <div class="accion-item" onclick="App.toast('📊 Reporte diario exportado')">⬇ Exportar reporte diario <span>›</span></div>
+            <div class="accion-item" onclick="App.toast('⚙ Filtros de riesgo actualizados')">⚙ Ajustar filtros de riesgo <span>›</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- RF-13 DASHBOARD -->
+    <div id="page-rf13" class="page-content">
+      <div style="font-size:20px;font-weight:700;color:var(--dark);margin-bottom:20px;">Dashboard Estratégico</div>
+      <div class="metrics-row">
+        <div class="metric-card">
+          <div class="metric-label">COMPATIBILIDAD PROMEDIO</div>
+          <div class="metric-value" style="color:var(--green);" id="dash-compat">87%</div>
+          <div class="metric-sub">↑ +5% vs semana anterior</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-label">VACANTES APLICADAS</div>
+          <div class="metric-value" id="dash-vacantes">12</div>
+          <div class="metric-sub">3 en revisión activa</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-label">SEÑALES ACTIVAS</div>
+          <div class="metric-value" id="dash-senales">35</div>
+          <div class="metric-sub">8 alertas nuevas hoy</div>
+        </div>
+        <div class="metric-card donut-card">
+          <div>
+            <div class="metric-label">PERFIL COMPLETADO</div>
+            <div class="metric-sub" style="margin-top:4px;">Continúa construyendo</div>
+          </div>
+          <div style="position:relative;width:80px;height:80px;flex-shrink:0;">
+            <svg viewBox="0 0 80 80" width="80" height="80">
+              <circle cx="40" cy="40" r="30" fill="none" stroke="#e2e4e9" stroke-width="8"/>
+              <circle id="donut-dash" cx="40" cy="40" r="30" fill="none" stroke="#00C896" stroke-width="8"
+                stroke-dasharray="0 188.5" stroke-linecap="round" transform="rotate(-90 40 40)"/>
+            </svg>
+            <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center;">
+              <strong style="font-size:18px;font-weight:800;color:var(--dark);" id="dash-pct">25</strong>
+              <div style="font-size:9px;color:var(--gray-text);">%</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="second-row">
+        <div class="next-action">
+          <h3>SIGUIENTE ACCIÓN RECOMENDADA</h3>
+          <h2>Completa tu perfil base para desbloquear recomendaciones personalizadas</h2>
+          <p>El sistema necesita conocer tu formación y experiencia para calcular tu compatibilidad real con las vacantes disponibles.</p>
+          <button class="btn-primary" onclick="App.nav('rf17')">Completar perfil base →</button>
+        </div>
+        <div class="activity-box">
+          <h3>Actividad Reciente</h3>
+          <div id="activity-list"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- RF-17 ACTUALIZAR -->
+    <div id="page-rf17" class="page-content">
+      <div style="font-size:20px;font-weight:700;color:var(--dark);margin-bottom:20px;">Actualizar mi información</div>
+      <div class="form-sections">
+        <div class="form-col">
+          <div class="form-section">
+            <div class="section-badge">PASO 01 — DATOS PERSONALES</div>
+            <h3>Información personal</h3>
+            <div class="field-row">
+              <div class="field-group"><label class="f-label">Nombre(s)</label><input class="f-input" id="f-nombre" value="Samantha Guadalupe"></div>
+              <div class="field-group"><label class="f-label">Apellidos</label><input class="f-input" id="f-apellido" value="Hernández"></div>
+            </div>
+            <div class="field-group"><label class="f-label">Correo electrónico</label><input class="f-input" id="f-email" value="samantha@cocox.mx"></div>
+            <div class="field-group"><label class="f-label">Ciudad</label><input class="f-input" id="f-ciudad" value="Querétaro, México"></div>
+          </div>
+          <div class="form-section">
+            <div class="section-badge">PASO 03 — EXPERIENCIA</div>
+            <h3>Experiencia laboral</h3>
+            <div class="field-group"><label class="f-label">Empresa más reciente</label><input class="f-input" id="f-empresa" placeholder="Ej: Chaindrenciales S.A. de C.V."></div>
+            <div class="field-group"><label class="f-label">Puesto</label><input class="f-input" id="f-puesto" placeholder="Ej: Desarrolladora Frontend"></div>
+            <div class="field-row">
+              <div class="field-group"><label class="f-label">Inicio</label><input class="f-input" id="f-inicio" placeholder="Ej: Enero 2024"></div>
+              <div class="field-group"><label class="f-label">Fin</label><input class="f-input" id="f-fin" placeholder="Actual"></div>
+            </div>
+          </div>
+        </div>
+        <div class="form-col">
+          <div class="form-section">
+            <div class="section-badge">PASO 02 — FORMACIÓN</div>
+            <h3>Formación académica</h3>
+            <div class="field-group"><label class="f-label">Institución educativa</label><input class="f-input" id="f-escuela" value="Universidad Tecnológica de Querétaro"></div>
+            <div class="field-group"><label class="f-label">Carrera o área de estudio</label><input class="f-input" id="f-carrera" value="Desarrollo de Software Multiplataforma"></div>
+            <div class="field-row">
+              <div class="field-group"><label class="f-label">Semestre actual</label><input class="f-input" id="f-semestre" value="9no cuatrimestre"></div>
+              <div class="field-group"><label class="f-label">Promedio</label><input class="f-input" id="f-promedio" value="9.2"></div>
+            </div>
+          </div>
+          <div class="form-section">
+            <div class="section-badge">PASO 04 — HABILIDADES</div>
+            <h3>Habilidades e intereses</h3>
+            <div class="field-group"><label class="f-label">Habilidades técnicas (separadas por coma)</label><input class="f-input" id="f-skills" value="Angular, TypeScript, Spring Boot, PostgreSQL"></div>
+            <div class="field-group"><label class="f-label">Idiomas</label><input class="f-input" id="f-idiomas" value="Español (nativo), Inglés (B2)"></div>
+            <div class="field-group"><label class="f-label">Áreas de interés</label><input class="f-input" id="f-intereses" placeholder="Ej: Desarrollo web, IA, UX..."></div>
+          </div>
+        </div>
+      </div>
+      <div class="save-bar">
+        <button class="btn-cancel" onclick="App.nav('inicio')">Cancelar</button>
+        <button class="btn-primary" onclick="App.guardarPerfil()">Guardar cambios ✓</button>
+      </div>
+    </div>
+
+    <!-- RF-18 COMPATIBILIDAD -->
+    <div id="page-rf18" class="page-content">
+      <div class="compat-hero">
+        <div class="compat-hero-left">
+          <div class="hero-tag" style="margin-bottom:14px;">Motor de Compatibilidad Activo</div>
+          <h2>Tu compatibilidad laboral</h2>
+          <p>Analizamos tu perfil completo contra las vacantes disponibles para mostrarte qué tan bien encajas y qué puedes mejorar.</p>
+        </div>
+        <div class="donut-big">
+          <svg viewBox="0 0 140 140">
+            <circle cx="70" cy="70" r="55" fill="none" stroke="#2a2a2a" stroke-width="12"/>
+            <circle id="donut-compat" cx="70" cy="70" r="55" fill="none" stroke="#00C896" stroke-width="12"
+              stroke-dasharray="0 345.6" stroke-linecap="round" transform="rotate(-90 70 70)"/>
+          </svg>
+          <div class="donut-big-label"><strong id="compat-pct">87%</strong><span>Compatible</span></div>
+        </div>
+      </div>
+      <div style="font-size:16px;font-weight:700;color:var(--dark);margin-bottom:16px;">Factores de compatibilidad</div>
+      <div class="factors-grid">
+        <div class="factor-card">
+          <div class="factor-header"><span class="factor-name">Habilidades técnicas</span><span class="factor-pct">94%</span></div>
+          <div class="progress-bar"><div class="progress-fill" data-width="94"></div></div>
+          <div class="factor-desc">Angular, TypeScript y Spring Boot alineados con el 94% de vacantes activas.</div>
+        </div>
+        <div class="factor-card">
+          <div class="factor-header"><span class="factor-name">Intereses profesionales</span><span class="factor-pct">89%</span></div>
+          <div class="progress-bar"><div class="progress-fill" data-width="89"></div></div>
+          <div class="factor-desc">Tus intereses en desarrollo web y UX coinciden con roles de alta demanda.</div>
+        </div>
+        <div class="factor-card">
+          <div class="factor-header"><span class="factor-name">Ubicación y disponibilidad</span><span class="factor-pct">82%</span></div>
+          <div class="progress-bar"><div class="progress-fill" data-width="82"></div></div>
+          <div class="factor-desc">Querétaro tiene buena cobertura. Modalidad híbrida amplía tus opciones.</div>
+        </div>
+        <div class="factor-card">
+          <div class="factor-header"><span class="factor-name">Formación académica</span><span class="factor-pct">78%</span></div>
+          <div class="progress-bar"><div class="progress-fill" data-width="78"></div></div>
+          <div class="factor-desc">UTEQ es reconocida. Completar tu estadía mejorará este factor significativamente.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- RF-19 RANKING -->
+    <div id="page-rf19" class="page-content">
+      <div style="font-size:20px;font-weight:700;color:var(--dark);margin-bottom:20px;">Ranking Personalizado de Oportunidades</div>
+      <div class="rank1-card">
+        <div class="rank-num">#1</div>
+        <div class="rank1-info">
+          <h2>Desarrolladora Frontend Jr. — Angular</h2>
+          <div class="rank1-empresa">Chaindrenciales S.A. de C.V. · Querétaro, México · Híbrido</div>
+          <div style="display:flex;align-items:center;gap:12px;">
+            <span class="badge-green" style="font-size:13px;padding:5px 14px;">96% match</span>
+            <div class="rank1-tags">
+              <span class="rank1-tag">Top match</span>
+              <span class="rank1-tag">Nueva hoy</span>
+              <span class="rank1-tag">Alineada a tus intereses</span>
+            </div>
+          </div>
+        </div>
+        <button class="btn-primary" style="flex-shrink:0;" onclick="App.toast('✅ Vacante abierta')">Ver vacante →</button>
+      </div>
+      <div class="rank-grid" id="rank-grid"></div>
+    </div>
+
+    <!-- RF-20 SIMULACION -->
+    <div id="page-rf20" class="page-content">
+      <div class="sim-hero">
+        <h2>¿A dónde puedes llegar?</h2>
+        <div class="sim-tabs" id="sim-tabs"></div>
+      </div>
+      <div class="sim-layout">
+        <div class="timeline-wrap">
+          <div class="timeline-label" id="sim-label"></div>
+          <div class="timeline" id="sim-timeline"></div>
+        </div>
+        <div class="sim-right">
+          <div class="potencial-card">
+            <div class="potencial-label">POTENCIAL ESTIMADO</div>
+            <div class="potencial-value" id="sim-potencial">Alto ↑</div>
+            <div class="potencial-desc" id="sim-potencial-desc">Tu perfil está muy alineado con esta trayectoria.</div>
+          </div>
+          <button class="btn-primary" style="width:100%;justify-content:center;" onclick="App.toast('🚀 Ruta guardada en tu trazabilidad')">Explorar esta ruta →</button>
+          <div class="card">
+            <div style="font-size:11px;font-weight:700;color:var(--gray-text);letter-spacing:.5px;margin-bottom:10px;">TAMBIÉN TE PODRÍA INTERESAR</div>
+            <div style="font-size:13px;font-weight:600;color:var(--dark);margin-bottom:8px;cursor:pointer;" onclick="App.nav('rf19')">→ Ver vacantes de esta ruta</div>
+            <div style="font-size:13px;font-weight:600;color:var(--dark);cursor:pointer;" onclick="App.nav('rf18')">→ Ver mi compatibilidad</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- end main-area -->
+</div><!-- end app-shell -->
+
+<script>
+const App = (() => {
+  // ── STATE ──
+  const state = {
+    profilePct: 25,
+    nombre: 'Samantha',
+    activities: [
+      { text: 'Aplicaste a <strong>Desarrolladora Frontend Jr.</strong> en TechMX', time: 'Hace 2 horas', color: '#00C896' },
+      { text: 'Nueva señal: <strong>Alta demanda Angular en QRO</strong>', time: 'Hace 5 horas', color: '#3b82f6' },
+      { text: 'Tu perfil fue visto por <strong>3 empresas</strong>', time: 'Ayer', color: '#f59e0b' },
+      { text: 'Completaste <strong>Mis intereses</strong>', time: 'Hace 2 días', color: '#00C896' },
+    ]
+  };
+
+  // ── DATA ──
+  const RECS_POOL = [
+    { titulo:'Optimización DeFi', afinidad:98, desc:'Estrategia avanzada para gestión de activos digitales en protocolos descentralizados.', tags:['Web3','Yield Aggregator'], tiempo:'15 min', prio:'Alta', cat:'Tecnología' },
+    { titulo:'Trazabilidad ESG', afinidad:92, desc:'Implementación de auditoría on-chain para reportes de sostenibilidad corporativa.', tags:['Enterprise','Compliance'], tiempo:'45 min', prio:'Media', cat:'Tecnología' },
+    { titulo:'Tokenización RWA', afinidad:87, desc:'Estructuración de activos del mundo real en contratos inteligentes auditables.', tags:['Real Estate','Legal'], tiempo:'1.2h', prio:'Alta', cat:'Backend' },
+    { titulo:'Zk-Rollup Privacy', afinidad:84, desc:'Configuración de canales privados con pruebas de conocimiento cero.', tags:['Privacy','Zero-Knowledge'], tiempo:'25 min', prio:'Media', cat:'Tecnología' },
+    { titulo:'Cross-Chain Bridges', afinidad:79, desc:'Interoperabilidad entre redes blockchain para transferencias eficientes de valor.', tags:['Layer2','Interop'], tiempo:'30 min', prio:'Media', cat:'Backend' },
+    { titulo:'UX para DeFi', afinidad:76, desc:'Diseño de interfaces intuitivas para plataformas de finanzas descentralizadas.', tags:['UX','Design Systems'], tiempo:'1h', prio:'Baja', cat:'Diseño' },
+    { titulo:'ML para Riesgo Crediticio', afinidad:88, desc:'Modelos predictivos de riesgo usando Python y datos históricos financieros.', tags:['Python','Machine Learning'], tiempo:'2h', prio:'Alta', cat:'Datos' },
+    { titulo:'API REST con Spring Boot', afinidad:93, desc:'Diseño e implementación de microservicios escalables con Java y Spring Boot.', tags:['Java','Backend','REST'], tiempo:'1.5h', prio:'Alta', cat:'Backend' },
+    { titulo:'Dashboard con Angular', afinidad:96, desc:'Construcción de tableros interactivos con Angular 17 y Chart.js.', tags:['Angular','TypeScript'], tiempo:'2h', prio:'Alta', cat:'Tecnología' },
+    { titulo:'ETL con Python', afinidad:81, desc:'Pipelines de datos automatizados para análisis y reportería en tiempo real.', tags:['Python','ETL'], tiempo:'1h', prio:'Media', cat:'Datos' },
+  ];
+
+  const SIGNALS = [
+    { icon:'📈', title:'Volumen Inusual: BTC/USDT', desc:'Incremento del 15% en el volumen de compra detectado en los últimos 30 minutos', cat:'mercado', badge:'MERCADO', time:'Hace 2m', range:'hoy' },
+    { icon:'⚠️', title:'Liquidación Masiva Pendiente', desc:'Posición de ballena de 45M USD en riesgo de liquidación en protocolo Aave', cat:'alerta', badge:'ALERTA', time:'Hace 14m', range:'hoy' },
+    { icon:'🔗', title:'Actualización de Mainnet: Ethereum', desc:'Despliegue exitoso del nuevo contrato de gobernanza en la red principal', cat:'actividad', badge:'ACTIVIDAD', time:'Hace 45m', range:'hoy' },
+    { icon:'📊', title:'Ruptura de Resistencia: SOL', desc:'Solana ha superado la EMA de 200 días con confirmación de volumen institucional', cat:'mercado', badge:'MERCADO', time:'Hace 1h', range:'hoy' },
+    { icon:'🔕', title:'Interrupción de Oráculo Chainlink', desc:'Retraso detectado en la actualización de precios para el par ETH/USD', cat:'alerta', badge:'ALERTA', time:'Hace 2h', range:'hoy' },
+    { icon:'🏦', title:'Emisión de Bonos DeFi: MakerDAO', desc:'MakerDAO emitió bonos on-chain por 200M USD con tasa del 4.5% anual', cat:'mercado', badge:'MERCADO', time:'Hace 3h', range:'semana' },
+    { icon:'🔄', title:'Migración de Liquidez: Uniswap v4', desc:'50M USD migrados de Uniswap v3 a v4 en las últimas 24 horas', cat:'actividad', badge:'ACTIVIDAD', time:'Ayer', range:'semana' },
+    { icon:'🚨', title:'Flash Loan Attack Detectado', desc:'Ataque de préstamo flash ejecutado contra protocolo Euler Finance por 8M USD', cat:'alerta', badge:'ALERTA', time:'Hace 2 días', range:'semana' },
+  ];
+
+  const VACANTES = [
+    { rank:2, titulo:'Desarrolladora Full Stack', empresa:'SoftMX · CDMX · Remoto', pct:91, tags:['tag-top','tag-new'], tagLabels:['Top match','Nueva hoy'] },
+    { rank:3, titulo:'UX/UI Developer', empresa:'DesignCo · Guadalajara · Híbrido', pct:88, tags:['tag-exp'], tagLabels:['Caduca pronto'] },
+    { rank:4, titulo:'Backend Developer Jr.', empresa:'TechQro · Querétaro · Presencial', pct:85, tags:['tag-top'], tagLabels:['Top match'] },
+    { rank:5, titulo:'QA Automation Tester', empresa:'Innovatech · Remoto', pct:81, tags:['tag-new'], tagLabels:['Nueva hoy'] },
+    { rank:6, titulo:'Data Analyst Jr.', empresa:'DataLab · Monterrey · Remoto', pct:77, tags:['tag-top'], tagLabels:['Top match'] },
+    { rank:7, titulo:'DevOps Engineer Jr.', empresa:'CloudMX · CDMX · Híbrido', pct:74, tags:['tag-new'], tagLabels:['Nueva hoy'] },
+  ];
+
+  const RUTAS = {
+    'Desarrollo de Software': {
+      potencial: 'Alto ↑', potencialDesc: 'Tu perfil está muy alineado con esta trayectoria. Angular + Spring Boot es el stack perfecto.',
+      hitos: [
+        { num:'HITO 01', titulo:'Jr. Developer', desc:'Dominas un framework y entregas features bajo supervisión. Foco en calidad de código.', icon:'<polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/>' },
+        { num:'HITO 02', titulo:'Mid Developer', desc:'Líderas módulos completos, mentoras juniors y propones soluciones arquitectónicas.', icon:'<rect x="2" y="3" width="20" height="14" rx="2"/><path d="m8 21 4-4 4 4"/><path d="M12 17V21"/>' },
+        { num:'HITO 03', titulo:'Sr. / Tech Lead', desc:'Defines la arquitectura del producto, gestionas el equipo técnico y roadmap tecnológico.', icon:'<polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>' },
+      ]
+    },
+    'Diseño UX': {
+      potencial: 'Medio ↗', potencialDesc: 'Tienes sensibilidad para el diseño. Complementar con Figma y research te abrirá muchas puertas.',
+      hitos: [
+        { num:'HITO 01', titulo:'UI Designer Jr.', desc:'Creas mockups y prototipos con guías de estilo establecidas. Aprendes a comunicar con código.', icon:'<circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83"/>' },
+        { num:'HITO 02', titulo:'UX Researcher', desc:'Conduces entrevistas, pruebas de usabilidad y traducces hallazgos en mejoras de producto.', icon:'<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>' },
+        { num:'HITO 03', titulo:'Product Designer', desc:'Dueño de la experiencia completa de usuario. Defines el sistema de diseño y la estrategia visual.', icon:'<polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>' },
+      ]
+    },
+    'Data Science': {
+      potencial: 'Alto ↑', potencialDesc: 'Tu background técnico en backend te da una ventaja enorme para transicionar a datos.',
+      hitos: [
+        { num:'HITO 01', titulo:'Data Analyst Jr.', desc:'Limpias, transformas y visualizas datos para responder preguntas de negocio. Excel y Python.', icon:'<line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/>' },
+        { num:'HITO 02', titulo:'Data Engineer', desc:'Construyes pipelines de datos robustos, automatizas ETL y diseñas arquitecturas de datos escalables.', icon:'<rect x="2" y="3" width="20" height="14" rx="2"/><path d="m8 21 4-4 4 4"/>' },
+        { num:'HITO 03', titulo:'ML Engineer / DS Lead', desc:'Desarrollas y despliegas modelos de machine learning en producción. Lideras el equipo de datos.', icon:'<polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>' },
+      ]
+    }
+  };
+
+  // ── TOAST ──
+  function toast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 2800);
+  }
+
+  // ── NAV ──
+  function nav(id) {
+    document.querySelectorAll('.page-content').forEach(p => p.classList.remove('active'));
+    const pg = document.getElementById('page-' + id);
+    if (pg) { pg.classList.add('active'); onEnter(id); }
+    document.querySelectorAll('.sidebar-item').forEach(i => i.classList.remove('active'));
+    document.querySelector(`.sidebar-item[data-page="${id}"]`)?.classList.add('active');
+    document.querySelector(`.sidebar-profile[data-page="${id}"]`)?.classList.add('active');
+    document.querySelectorAll('.navbar-tab').forEach(t => t.classList.remove('active'));
+    const tabMap = { inicio:'inicio', rf10:'rf10', rf11:'rf10', rf19:'rf19', rf20:'rf20', rf17:'inicio', rf18:'inicio', rf13:'inicio' };
+    document.querySelector(`.navbar-tab[data-page="${tabMap[id] || id}"]`)?.classList.add('active');
+  }
+
+  function onEnter(id) {
+    if (id === 'rf18') animateCompat();
+    if (id === 'rf13') animateDashDonut();
+    if (id === 'inicio') animateInicioDonut();
+    if (id === 'rf11') renderSignals('hoy');
+    if (id === 'rf10') renderRecs();
+    if (id === 'rf19') renderRanking();
+    if (id === 'rf20') renderSim(Object.keys(RUTAS)[0]);
+    if (id === 'rf13') renderActivity();
+  }
+
+  // ── LOGIN ──
+  function initLogin() {
+    const btn = document.getElementById('btn-login');
+    const emailEl = document.getElementById('login-email');
+    const passEl = document.getElementById('login-pass');
+    const errEl = document.getElementById('login-error');
+    btn.addEventListener('click', () => {
+      const email = emailEl.value.trim();
+      const pass = passEl.value.trim();
+      if (!email || !pass) { errEl.style.display = 'block'; errEl.textContent = 'Completa todos los campos.'; return; }
+      errEl.style.display = 'none';
+      btn.disabled = true; btn.textContent = 'Ingresando...';
+      setTimeout(goToApp, 900);
+    });
+    passEl.addEventListener('keydown', e => { if(e.key==='Enter') btn.click(); });
+  }
+
+  function goToApp() {
+    document.getElementById('page-login').style.display = 'none';
+    document.getElementById('app-shell').style.display = 'flex';
+    updateGreeting();
+    nav('inicio');
+  }
+
+  // ── GREETING ──
+  function updateGreeting() {
+    const h = new Date().getHours();
+    const saludo = h < 12 ? 'Buenos días' : h < 19 ? 'Buenas tardes' : 'Buenas noches';
+    document.getElementById('hero-greeting').textContent = `${saludo}, ${state.nombre}.`;
+  }
+
+  // ── DONUTS ──
+  function animateInicioDonut() {
+    const circ = document.getElementById('donut-inicio');
+    const total = 251.2;
+    let cur = 0; const target = total * state.profilePct / 100;
+    const step = target / 40;
+    const iv = setInterval(() => {
+      cur = Math.min(cur + step, target);
+      circ.setAttribute('stroke-dasharray', `${cur} ${total}`);
+      if (cur >= target) clearInterval(iv);
+    }, 16);
+    document.getElementById('donut-pct').textContent = state.profilePct;
+  }
+
+  function animateDashDonut() {
+    const circ = document.getElementById('donut-dash');
+    const total = 188.5;
+    let cur = 0; const target = total * state.profilePct / 100;
+    const step = target / 40;
+    const iv = setInterval(() => {
+      cur = Math.min(cur + step, target);
+      circ.setAttribute('stroke-dasharray', `${cur} ${total}`);
+      if (cur >= target) clearInterval(iv);
+    }, 16);
+    document.getElementById('dash-pct').textContent = state.profilePct;
+  }
+
+  function animateCompat() {
+    const circ = document.getElementById('donut-compat');
+    const total = 345.6;
+    let cur = 0; const target = total * 0.87;
+    const step = target / 50;
+    const iv = setInterval(() => {
+      cur = Math.min(cur + step, target);
+      circ.setAttribute('stroke-dasharray', `${cur} ${total}`);
+      if (cur >= target) clearInterval(iv);
+    }, 16);
+    // progress bars
+    setTimeout(() => {
+      document.querySelectorAll('.progress-fill').forEach(bar => {
+        bar.style.width = bar.dataset.width + '%';
+      });
+    }, 200);
+  }
+
+  // ── RF-10 RECS ──
+  function renderRecs() {
+    const cat = document.getElementById('filter-cat').value;
+    const prio = document.getElementById('filter-prio').value;
+    let pool = [...RECS_POOL];
+    if (cat) pool = pool.filter(r => r.cat === cat);
+    if (prio) pool = pool.filter(r => r.prio === prio);
+    const shown = pool.slice(0, 6);
+    const grid = document.getElementById('rec-grid');
+    grid.innerHTML = shown.map(r => `
+      <div class="rec-card">
+        <div class="rec-card-top">
+          <h4>${r.titulo}</h4>
+          <span class="badge-green">${r.afinidad}% Afinidad</span>
+        </div>
+        <div class="rec-desc">${r.desc}</div>
+        <div class="rec-tags">${r.tags.map(t=>`<span class="pill-tag">${t}</span>`).join('')}</div>
+        <div class="rec-footer">
+          <span>⏱ ${r.tiempo} est.</span>
+          <span class="prioridad ${r.prio.toLowerCase()}">${r.prio === 'Alta' ? '⚑' : '⚐'} ${r.prio}</span>
+        </div>
+        <button class="btn-sm" onclick="App.toast('✅ Recomendación abierta: ${r.titulo}')">Ver recomendación</button>
+      </div>
+    `).join('');
+    document.getElementById('rec-count').textContent = `Mostrando ${shown.length} rutas de inteligencia institucional`;
+  }
+
+  function generarRecs() {
+    const grid = document.getElementById('rec-grid');
+    grid.classList.add('generating');
+    toast('⚙ Generando nuevas recomendaciones...');
+    setTimeout(() => {
+      // shuffle pool
+      RECS_POOL.sort(() => Math.random() - 0.5);
+      grid.classList.remove('generating');
+      renderRecs();
+      toast('✅ Nuevas recomendaciones generadas');
+    }, 1200);
+  }
+
+  // ── RF-11 SIGNALS ──
+  let currentRange = 'hoy';
+  function renderSignals(range) {
+    currentRange = range;
+    const search = (document.getElementById('signal-search')?.value || '').toLowerCase();
+    const feed = document.getElementById('signal-feed');
+    const filtered = SIGNALS.filter(s => s.range === range || range === 'semana')
+      .filter(s => !search || s.title.toLowerCase().includes(search) || s.desc.toLowerCase().includes(search));
+    feed.innerHTML = filtered.map(s => `
+      <div class="signal-row">
+        <div class="signal-icon">${s.icon}</div>
+        <div class="signal-body">
+          <div class="signal-title">${s.title}</div>
+          <div class="signal-desc">${s.desc}</div>
+        </div>
+        <div class="signal-meta">
+          <span class="badge-category badge-${s.cat}">${s.badge}</span>
+          <span class="signal-time">${s.time}</span>
+        </div>
+      </div>
+    `).join('') || '<div style="color:var(--gray-text);font-size:13px;padding:16px;">No se encontraron señales.</div>';
+    // counters
+    const inRange = SIGNALS.filter(s => range === 'semana' || s.range === range);
+    document.getElementById('cnt-mercado').textContent = inRange.filter(s=>s.cat==='mercado').length;
+    document.getElementById('cnt-actividad').textContent = inRange.filter(s=>s.cat==='actividad').length;
+    document.getElementById('cnt-alerta').textContent = inRange.filter(s=>s.cat==='alerta').length;
+  }
+
+  function filterSignals(range, btn) {
+    document.querySelectorAll('.time-tab').forEach(t => t.classList.remove('active'));
+    btn.classList.add('active');
+    renderSignals(range);
+  }
+
+  // ── RF-13 ACTIVITY ──
+  function renderActivity() {
+    document.getElementById('activity-list').innerHTML = state.activities.map(a => `
+      <div class="activity-item">
+        <div class="activity-dot" style="background:${a.color}"></div>
+        <div>
+          <div class="activity-text">${a.text}</div>
+          <div class="activity-time">${a.time}</div>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  // ── RF-17 GUARDAR PERFIL ──
+  function guardarPerfil() {
+    const nombre = document.getElementById('f-nombre').value.trim();
+    const apellido = document.getElementById('f-apellido').value.trim();
+    if (!nombre) { toast('⚠ Completa tu nombre'); return; }
+    state.nombre = nombre;
+    state.profilePct = Math.min(state.profilePct + 25, 100);
+    document.getElementById('profile-display-name').textContent = `${nombre} ${apellido}`.trim().slice(0, 16) + '...';
+    state.activities.unshift({ text: `Actualizaste tu <strong>información de perfil</strong>`, time: 'Ahora mismo', color: '#00C896' });
+    toast('✅ Perfil actualizado correctamente');
+    setTimeout(() => nav('inicio'), 800);
+  }
+
+  // ── RF-19 RANKING ──
+  function renderRanking() {
+    document.getElementById('rank-grid').innerHTML = VACANTES.map(v => `
+      <div class="rank-card">
+        <div class="rank-card-top">
+          <div class="rank-card-num">#${v.rank}</div>
+          <div class="rank-card-info" style="flex:1;">
+            <h4>${v.titulo}</h4>
+            <div class="empresa">${v.empresa}</div>
+          </div>
+          <span class="badge-green">${v.pct}%</span>
+        </div>
+        <div class="rank-card-tags">${v.tags.map((t,i)=>`<span class="${t}">${v.tagLabels[i]}</span>`).join('')}</div>
+        <button class="btn-sm" onclick="App.toast('✅ Vacante #${v.rank} abierta')">Ver vacante</button>
+      </div>
+    `).join('');
+  }
+
+  // ── RF-20 SIMULACION ──
+  let currentRuta = null;
+  function renderSim(rutaNombre) {
+    currentRuta = rutaNombre;
+    const ruta = RUTAS[rutaNombre];
+    // tabs
+    document.getElementById('sim-tabs').innerHTML = Object.keys(RUTAS).map(r =>
+      `<button class="sim-tab ${r===rutaNombre?'active':''}" onclick="App.renderSim('${r}')">${r}</button>`
+    ).join('');
+    // label
+    document.getElementById('sim-label').textContent = `Tu ruta de crecimiento — ${rutaNombre}`;
+    // timeline
+    document.getElementById('sim-timeline').innerHTML = ruta.hitos.map(h => `
+      <div class="hito">
+        <div class="hito-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">${h.icon}</svg>
+        </div>
+        <div class="hito-body">
+          <div class="hito-num">${h.num}</div>
+          <div class="hito-title">${h.titulo}</div>
+          <div class="hito-desc">${h.desc}</div>
+        </div>
+      </div>
+    `).join('');
+    // potencial
+    document.getElementById('sim-potencial').textContent = ruta.potencial;
+    document.getElementById('sim-potencial-desc').textContent = ruta.potencialDesc;
+  }
+
+  // ── INIT ──
+  function init() {
+    initLogin();
+    // sidebar nav
+    document.querySelectorAll('.sidebar-item[data-page], .sidebar-profile[data-page]').forEach(el => {
+      el.addEventListener('click', () => nav(el.dataset.page));
+    });
+    document.querySelectorAll('.navbar-tab[data-page]').forEach(el => {
+      el.addEventListener('click', () => nav(el.dataset.page));
+    });
+    // rf10 filters
+    document.getElementById('filter-cat')?.addEventListener('change', renderRecs);
+    document.getElementById('filter-prio')?.addEventListener('change', renderRecs);
+    // rf11 search
+    document.getElementById('signal-search')?.addEventListener('input', () => renderSignals(currentRange));
+  }
+
+  document.addEventListener('DOMContentLoaded', init);
+  return { nav, toast, goToApp, guardarPerfil, generarRecs, filterSignals, renderSim, saveInicio };
+
+  function saveInicio() {
+    const escuela = document.getElementById('inicio-escuela').value.trim();
+    if (!escuela) { toast('⚠ Ingresa tu institución educativa'); return; }
+    state.profilePct = Math.min(state.profilePct + 10, 100);
+    state.activities.unshift({ text: 'Completaste tu <strong>punto de partida</strong>', time: 'Ahora mismo', color: '#00C896' });
+    toast('✅ Información guardada');
+    setTimeout(() => nav('rf10'), 700);
+  }
+})();
+</script>
+</body>
+</html>
